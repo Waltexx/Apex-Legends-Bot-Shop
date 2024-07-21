@@ -1,3 +1,30 @@
+from flask import Flask, send_file
+import os
+import requests
+from bs4 import BeautifulSoup
+from PIL import Image, ImageDraw, ImageFont
+
+app = Flask(__name__)
+
+def fetch_images():
+    try:
+        url = "https://apexitemstore.com/"
+        response = requests.get(url)
+        response.raise_for_status()
+        soup = BeautifulSoup(response.content, "html.parser")
+        section = "Corrupted Summer Store"
+        section_header = soup.find('h3', string=section)
+        if section_header:
+            next_element = section_header.find_next()
+            while next_element and next_element.name not in ['ul', 'p']:
+                next_element = next_element.find_next()
+            if next_element:
+                return [img.get('src') for img in next_element.find_all('img') if img.get('src')]
+        return []
+    except Exception as e:
+        print(f"Error fetching images: {e}")
+        raise
+
 def create_composite_image(image_urls):
     try:
         bg_path = "Background.png"  # Chemin relatif
@@ -33,3 +60,18 @@ def create_composite_image(image_urls):
     except Exception as e:
         print(f"Error creating composite image: {e}")
         raise
+
+@app.route('/api/composite_image', methods=['GET'])
+def get_composite_image():
+    try:
+        images = fetch_images()
+        composite_image = create_composite_image(images)
+        composite_image_path = os.path.join(os.getcwd(), "composite_image.jpg")
+        composite_image.save(composite_image_path)
+        return send_file(composite_image_path, mimetype='image/jpeg')
+    except Exception as e:
+        print(f"Error in get_composite_image: {e}")
+        return {"error": "Error creating composite image"}, 500
+
+if __name__ == '__main__':
+    app.run(debug=True)
