@@ -5,7 +5,6 @@ from flask import Flask, send_file
 import os
 
 app = Flask(__name__)
-port = 5001
 
 def fetch_images():
     url = "https://apexitemstore.com/"
@@ -23,10 +22,11 @@ def fetch_images():
     return []
 
 def create_composite_image(image_urls):
-    bg_path = r"C:\\Users\\AdminLocal\\Desktop\\APYY\\Background.png"
+    # Utilisation du chemin relatif pour le fichier de fond
+    bg_path = os.path.join(os.path.dirname(__file__), 'static', 'Background.png')
     bg_image = Image.open(bg_path)
-    title_font = ImageFont.truetype("arialbd.ttf", 200)
-    section_font = ImageFont.truetype("arialbd.ttf", 180)
+    title_font = ImageFont.truetype(os.path.join(os.path.dirname(__file__), 'static', 'arialbd.ttf'), 200)
+    section_font = ImageFont.truetype(os.path.join(os.path.dirname(__file__), 'static', 'arialbd.ttf'), 180)
     title_color = (255, 255, 255)
     margin, padding, scale = 50, 40, 6
     composite_width, composite_height = 12000, 10000
@@ -58,9 +58,9 @@ def create_composite_image(image_urls):
 def get_composite_image():
     images = fetch_images()
     composite_image = create_composite_image(images)
-    composite_image_path = os.path.join(os.getcwd(), "composite_image.jpg")
+    composite_image_path = os.path.join(os.path.dirname(__file__), "composite_image.jpg")
     composite_image.save(composite_image_path)
     return send_file(composite_image_path, mimetype='image/jpeg')
 
 if __name__ == '__main__':
-    app.run(debug=True, port=port)
+    app.run()
