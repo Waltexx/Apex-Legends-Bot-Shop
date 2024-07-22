@@ -38,50 +38,58 @@ def create_composite_image(image_urls):
         bg_image = Image.open(bg_path)
         bg_width, bg_height = bg_image.size
 
-        # Determine the size required for the composite image
+        # Variables for composite image dimensions
         margin = 10
-        images = []
-        total_width = total_height = 0
-        max_row_height = 0
+        max_width = bg_width
         current_x, current_y = margin, margin
+        row_height = 0
 
-        # Calculate the required dimensions
+        # Determine the size required for the composite image
         for url in image_urls:
             try:
                 response = requests.get(url, stream=True)
                 response.raise_for_status()
                 img = Image.open(response.raw)
-                img.thumbnail((bg_width // 5, bg_height // 5))
-                images.append(img)
-
-                if current_x + img.width > bg_width - margin:
-                    total_width = max(total_width, current_x)
-                    total_height += max_row_height + margin
-                    max_row_height = 0
+                # Resize proportionally, but ensure the quality is high
+                img.thumbnail((bg_width // 4, bg_height // 4), Image.ANTIALIAS)
+                
+                if current_x + img.width > max_width - margin:
                     current_x = margin
-                    current_y = total_height
-
-                max_row_height = max(max_row_height, img.height)
+                    current_y += row_height + margin
+                    row_height = 0
+                
+                row_height = max(row_height, img.height)
                 current_x += img.width + margin
             except Exception as e:
                 print(f"Error processing image {url}: {e}")
                 continue
 
-        # Add the final row height
-        total_width = max(total_width, current_x)
-        total_height += max_row_height + margin
-
-        # Create the composite image
-        composite_image = Image.new('RGB', (total_width, total_height), (255, 255, 255))
+        # Create a new image with the calculated dimensions
+        composite_image = Image.new('RGB', (max_width, current_y + row_height + margin), (255, 255, 255))
         composite_image.paste(bg_image, (0, 0))
 
+        # Draw images onto the composite image
         current_x, current_y = margin, margin
-        for img in images:
-            if current_x + img.width > total_width - margin:
-                current_x = margin
-                current_y += max_row_height + margin
-            composite_image.paste(img, (current_x, current_y))
-            current_x += img.width + margin
+        row_height = 0
+
+        for url in image_urls:
+            try:
+                response = requests.get(url, stream=True)
+                response.raise_for_status()
+                img = Image.open(response.raw)
+                img.thumbnail((bg_width // 4, bg_height // 4), Image.ANTIALIAS)
+                
+                if current_x + img.width > max_width - margin:
+                    current_x = margin
+                    current_y += row_height + margin
+                    row_height = 0
+                
+                composite_image.paste(img, (current_x, current_y))
+                current_x += img.width + margin
+                row_height = max(row_height, img.height)
+            except Exception as e:
+                print(f"Error processing image {url}: {e}")
+                continue
 
         return composite_image
     except Exception as e:
@@ -96,7 +104,7 @@ def get_composite_image():
             return jsonify({"error": "No images found"}), 404
         composite_image = create_composite_image(images)
         composite_image_path = os.path.join("/tmp", "composite_image.jpg")
-        composite_image.save(composite_image_path)
+        composite_image.save(composite_image_path, quality=95)  # Save with high quality
         return send_file(composite_image_path, mimetype='image/jpeg')
     except Exception as e:
         print(f"Error in get_composite_image: {e}")
