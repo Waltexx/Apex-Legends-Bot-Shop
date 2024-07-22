@@ -20,7 +20,7 @@ def fetch_images():
         if section_header:
             next_element = section_header.find_next()
             while next_element and next_element.name not in ['ul', 'p']:
-                next_element = section_header.find_next()
+                next_element = next_element.find_next()
             if next_element:
                 return [img.get('src') for img in next_element.find_all('img') if img.get('src')]
         return []
@@ -30,34 +30,68 @@ def fetch_images():
 
 def create_composite_image(image_urls):
     try:
+        # Prepare the background image
         bg_path = "Background.png"
         if not os.path.exists(bg_path):
             raise FileNotFoundError(f"Background image not found at {bg_path}")
 
+        # Open the background image
         bg_image = Image.open(bg_path)
-        composite_width, composite_height = bg_image.size
-        draw = ImageDraw.Draw(bg_image)
-        title_font = ImageFont.load_default()
-        title_color = (255, 255, 255)
-        draw.text((10, 10), "SHOP APEX LEGENDS - Corrupted Summer Store", font=title_font, fill=title_color)
+        bg_width, bg_height = bg_image.size
 
-        current_x, current_y = 10, 40
+        # Variables to compute the required size of the composite image
+        margin = 10
+        max_width = bg_width
+        current_x, current_y = margin, margin
+        row_height = 0
+
+        # Determine the required height of the composite image
         for url in image_urls:
             try:
                 response = requests.get(url, stream=True)
                 response.raise_for_status()
                 img = Image.open(response.raw)
-                img.thumbnail((200, 200))
-                bg_image.paste(img, (current_x, current_y))
-                current_x += img.width + 10
-                if current_x > composite_width - 200:
-                    current_x = 10
-                    current_y += img.height + 10
+                img.thumbnail((bg_width // 5, bg_height // 5))  # Resize proportionally
+                
+                if current_x + img.width > max_width - margin:
+                    current_x = margin
+                    current_y += row_height + margin
+                    row_height = 0
+                
+                row_height = max(row_height, img.height)
+                current_x += img.width + margin
             except Exception as e:
                 print(f"Error processing image {url}: {e}")
                 continue
 
-        return bg_image
+        # Create a new image with the calculated dimensions
+        composite_image = Image.new('RGB', (bg_width, current_y + row_height + margin), (255, 255, 255))
+        composite_image.paste(bg_image, (0, 0))
+
+        # Draw images onto the composite image
+        current_x, current_y = margin, margin
+        row_height = 0
+
+        for url in image_urls:
+            try:
+                response = requests.get(url, stream=True)
+                response.raise_for_status()
+                img = Image.open(response.raw)
+                img.thumbnail((bg_width // 5, bg_height // 5))
+                
+                if current_x + img.width > max_width - margin:
+                    current_x = margin
+                    current_y += row_height + margin
+                    row_height = 0
+                
+                composite_image.paste(img, (current_x, current_y))
+                current_x += img.width + margin
+                row_height = max(row_height, img.height)
+            except Exception as e:
+                print(f"Error processing image {url}: {e}")
+                continue
+
+        return composite_image
     except Exception as e:
         print(f"Error creating composite image: {e}")
         raise
