@@ -1,3 +1,5 @@
+# index.py
+
 from flask import Flask, send_file, jsonify
 import requests
 from PIL import Image, ImageDraw, ImageFont
@@ -13,7 +15,6 @@ def fetch_images():
     try:
         response = requests.get(url, headers=headers)
         response.raise_for_status()
-        # Simulating image URLs for testing
         return [
             "https://example.com/image1.jpg",
             "https://example.com/image2.jpg"
@@ -24,11 +25,10 @@ def fetch_images():
 
 def create_composite_image(image_urls):
     try:
-        # Create a blank image
         composite_width, composite_height = 1200, 1000
         bg_image = Image.new("RGB", (composite_width, composite_height), (255, 255, 255))
         draw = ImageDraw.Draw(bg_image)
-        title_font = ImageFont.load_default()  # Use default font for simplicity
+        title_font = ImageFont.load_default()
         title_color = (0, 0, 0)
         draw.text((10, 10), "Composite Image", font=title_font, fill=title_color)
 
@@ -38,7 +38,7 @@ def create_composite_image(image_urls):
                 response = requests.get(url, stream=True)
                 response.raise_for_status()
                 img = Image.open(response.raw)
-                img.thumbnail((200, 200))  # Resize image for simplicity
+                img.thumbnail((200, 200))
                 bg_image.paste(img, (current_x, current_y))
                 current_x += img.width + 10
                 if current_x > composite_width - 200:
@@ -68,4 +68,4 @@ def get_composite_image():
         return jsonify({"error": "Error creating composite image"}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5001)
+    app.run(debug=True)
