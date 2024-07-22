@@ -41,18 +41,20 @@ def create_composite_image(image_urls):
         title_color = (255, 255, 255)
         draw.text((10, 10), "SHOP APEX LEGENDS - Corrupted Summer Store", font=title_font, fill=title_color)
 
-        current_x, current_y = 10, 40
+        margin, padding, scale = 50, 40, 10  # Increased scale factor
+        current_x, current_y = margin, 100
+
         for url in image_urls:
             try:
                 response = requests.get(url, stream=True)
                 response.raise_for_status()
                 img = Image.open(response.raw)
-                img.thumbnail((200, 200))
+                img = img.resize((img.width * scale, img.height * scale), Image.Resampling.LANCZOS)
+                if current_x + img.width > composite_width - margin:
+                    current_x = margin
+                    current_y += img.height + padding
                 bg_image.paste(img, (current_x, current_y))
-                current_x += img.width + 10
-                if current_x > composite_width - 200:
-                    current_x = 10
-                    current_y += img.height + 10
+                current_x += img.width + padding
             except Exception as e:
                 print(f"Error processing image {url}: {e}")
                 continue
