@@ -20,7 +20,7 @@ def fetch_images():
         if section_header:
             next_element = section_header.find_next()
             while next_element and next_element.name not in ['ul', 'p']:
-                next_element = section_header.find_next()
+                next_element = next_element.find_next()
             if next_element:
                 return [img.get('src') for img in next_element.find_all('img') if img.get('src')]
         return []
