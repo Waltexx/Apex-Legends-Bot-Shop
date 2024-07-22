@@ -15,10 +15,18 @@ def fetch_images():
     try:
         response = requests.get(url, headers=headers)
         response.raise_for_status()
-        return [
-            "https://example.com/image1.jpg",
-            "https://example.com/image2.jpg"
-        ]
+        # Utiliser BeautifulSoup pour extraire les URLs des images
+        from bs4 import BeautifulSoup
+        soup = BeautifulSoup(response.content, "html.parser")
+        section = "Corrupted Summer Store"
+        section_header = soup.find('h3', string=section)
+        if section_header:
+            next_element = section_header.find_next()
+            while next_element and next_element.name not in ['ul', 'p']:
+                next_element = next_element.find_next()
+            if next_element:
+                return [img.get('src') for img in next_element.find_all('img') if img.get('src')]
+        return []
     except Exception as e:
         print(f"Error fetching images: {e}")
         return []
