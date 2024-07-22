@@ -52,7 +52,10 @@ def create_composite_image(image_urls):
                 response.raise_for_status()
                 img = Image.open(response.raw)
                 img = img.convert("RGB")  # Ensure the image is in RGB mode
-                img = img.resize((bg_width // 5, bg_height // 5), Image.Resampling.LANCZOS)
+
+                # Resize while maintaining aspect ratio
+                max_size = (bg_width // 5, bg_height // 5)
+                img.thumbnail(max_size, Image.Resampling.LANCZOS)
                 images.append(img)
 
                 if current_x + img.width > bg_width - margin:
