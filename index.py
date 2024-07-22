@@ -1,7 +1,5 @@
-# index.py
-
-from flask import Flask, send_file, jsonify
 import requests
+from flask import Flask, send_file, jsonify
 from PIL import Image, ImageDraw, ImageFont
 import os
 
@@ -15,7 +13,6 @@ def fetch_images():
     try:
         response = requests.get(url, headers=headers)
         response.raise_for_status()
-        # Utiliser BeautifulSoup pour extraire les URLs des images
         from bs4 import BeautifulSoup
         soup = BeautifulSoup(response.content, "html.parser")
         section = "Corrupted Summer Store"
@@ -23,7 +20,7 @@ def fetch_images():
         if section_header:
             next_element = section_header.find_next()
             while next_element and next_element.name not in ['ul', 'p']:
-                next_element = next_element.find_next()
+                next_element = section_header.find_next()
             if next_element:
                 return [img.get('src') for img in next_element.find_all('img') if img.get('src')]
         return []
@@ -33,12 +30,16 @@ def fetch_images():
 
 def create_composite_image(image_urls):
     try:
-        composite_width, composite_height = 1200, 1000
-        bg_image = Image.new("RGB", (composite_width, composite_height), (255, 255, 255))
+        bg_path = "Background.png"
+        if not os.path.exists(bg_path):
+            raise FileNotFoundError(f"Background image not found at {bg_path}")
+
+        bg_image = Image.open(bg_path)
+        composite_width, composite_height = bg_image.size
         draw = ImageDraw.Draw(bg_image)
         title_font = ImageFont.load_default()
-        title_color = (0, 0, 0)
-        draw.text((10, 10), "Composite Image", font=title_font, fill=title_color)
+        title_color = (255, 255, 255)
+        draw.text((10, 10), "SHOP APEX LEGENDS - Corrupted Summer Store", font=title_font, fill=title_color)
 
         current_x, current_y = 10, 40
         for url in image_urls:
