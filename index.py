@@ -51,9 +51,8 @@ def create_composite_image(image_urls):
                 response = requests.get(url, stream=True)
                 response.raise_for_status()
                 img = Image.open(response.raw)
-                # Resize proportionally, use high-quality resampling filter
                 img = img.convert("RGB")  # Ensure the image is in RGB mode
-                img.thumbnail((bg_width // 5, bg_height // 5), Image.Resampling.LANCZOS)
+                img = img.resize((bg_width // 5, bg_height // 5), Image.Resampling.LANCZOS)
                 images.append(img)
 
                 if current_x + img.width > bg_width - margin:
@@ -85,6 +84,9 @@ def create_composite_image(image_urls):
             composite_image.paste(img, (current_x, current_y))
             current_x += img.width + margin
 
+        # Save the composite image with high quality
+        composite_image_path = os.path.join("/tmp", "composite_image.png")
+        composite_image.save(composite_image_path, format='PNG', quality=95, optimize=True)
         return composite_image
     except Exception as e:
         print(f"Error creating composite image: {e}")
@@ -97,10 +99,8 @@ def get_composite_image():
         if not images:
             return jsonify({"error": "No images found"}), 404
         composite_image = create_composite_image(images)
-        composite_image_path = os.path.join("/tmp", "composite_image.jpg")
-        # Save the composite image with high quality
-        composite_image.save(composite_image_path, format='JPEG', quality=100, optimize=True, progressive=True)
-        return send_file(composite_image_path, mimetype='image/jpeg')
+        composite_image_path = os.path.join("/tmp", "composite_image.png")
+        return send_file(composite_image_path, mimetype='image/png')
     except Exception as e:
         print(f"Error in get_composite_image: {e}")
         return jsonify({"error": "Error creating composite image"}), 500
