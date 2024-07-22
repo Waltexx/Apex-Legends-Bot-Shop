@@ -20,7 +20,7 @@ def fetch_images():
         if section_header:
             next_element = section_header.find_next()
             while next_element and next_element.name not in ['ul', 'p']:
-                next_element = next_element.find_next()
+                next_element = section_header.find_next()
             if next_element:
                 return [img.get('src') for img in next_element.find_all('img') if img.get('src')]
         return []
@@ -30,12 +30,11 @@ def fetch_images():
 
 def create_composite_image(image_urls):
     try:
-        # Prepare the background image
+        # Load the background image
         bg_path = "Background.png"
         if not os.path.exists(bg_path):
             raise FileNotFoundError(f"Background image not found at {bg_path}")
 
-        # Open the background image
         bg_image = Image.open(bg_path)
         bg_width, bg_height = bg_image.size
 
@@ -44,6 +43,7 @@ def create_composite_image(image_urls):
         max_width = bg_width
         current_x, current_y = margin, margin
         row_height = 0
+        total_height = margin
 
         # Determine the required height of the composite image
         for url in image_urls:
@@ -56,6 +56,7 @@ def create_composite_image(image_urls):
                 if current_x + img.width > max_width - margin:
                     current_x = margin
                     current_y += row_height + margin
+                    total_height = current_y
                     row_height = 0
                 
                 row_height = max(row_height, img.height)
@@ -65,7 +66,8 @@ def create_composite_image(image_urls):
                 continue
 
         # Create a new image with the calculated dimensions
-        composite_image = Image.new('RGB', (bg_width, current_y + row_height + margin), (255, 255, 255))
+        total_height = max(total_height + row_height + margin, bg_height)
+        composite_image = Image.new('RGB', (bg_width, total_height), (255, 255, 255))
         composite_image.paste(bg_image, (0, 0))
 
         # Draw images onto the composite image
