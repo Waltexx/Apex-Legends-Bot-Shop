@@ -34,15 +34,19 @@ def create_composite_image(image_urls):
 
         current_x, current_y = 10, 40
         for url in image_urls:
-            response = requests.get(url, stream=True)
-            response.raise_for_status()
-            img = Image.open(response.raw)
-            img.thumbnail((200, 200))  # Resize image for simplicity
-            bg_image.paste(img, (current_x, current_y))
-            current_x += img.width + 10
-            if current_x > composite_width - 200:
-                current_x = 10
-                current_y += img.height + 10
+            try:
+                response = requests.get(url, stream=True)
+                response.raise_for_status()
+                img = Image.open(response.raw)
+                img.thumbnail((200, 200))  # Resize image for simplicity
+                bg_image.paste(img, (current_x, current_y))
+                current_x += img.width + 10
+                if current_x > composite_width - 200:
+                    current_x = 10
+                    current_y += img.height + 10
+            except Exception as e:
+                print(f"Error processing image {url}: {e}")
+                continue
 
         return bg_image
     except Exception as e:
