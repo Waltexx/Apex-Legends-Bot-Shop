@@ -52,7 +52,8 @@ def create_composite_image(image_urls):
                 response.raise_for_status()
                 img = Image.open(response.raw)
                 # Resize proportionally, use high-quality resampling filter
-                img.thumbnail((bg_width // 5, bg_height // 5), Image.LANCZOS)
+                img = img.convert("RGB")  # Ensure the image is in RGB mode
+                img.thumbnail((bg_width // 5, bg_height // 5), Image.Resampling.LANCZOS)
                 images.append(img)
 
                 if current_x + img.width > bg_width - margin:
@@ -98,7 +99,7 @@ def get_composite_image():
         composite_image = create_composite_image(images)
         composite_image_path = os.path.join("/tmp", "composite_image.jpg")
         # Save the composite image with high quality
-        composite_image.save(composite_image_path, format='JPEG', quality=95, optimize=True)
+        composite_image.save(composite_image_path, format='JPEG', quality=100, optimize=True, progressive=True)
         return send_file(composite_image_path, mimetype='image/jpeg')
     except Exception as e:
         print(f"Error in get_composite_image: {e}")
