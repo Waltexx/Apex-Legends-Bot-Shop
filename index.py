@@ -20,7 +20,7 @@ def fetch_images():
         if section_header:
             next_element = section_header.find_next()
             while next_element and next_element.name not in ['ul', 'p']:
-                next_element = section_header.find_next()
+                next_element = next_element.find_next()
             if next_element:
                 return [img.get('src') for img in next_element.find_all('img') if img.get('src')]
         return []
@@ -38,60 +38,50 @@ def create_composite_image(image_urls):
         bg_image = Image.open(bg_path)
         bg_width, bg_height = bg_image.size
 
-        # Variables to compute the required size of the composite image
+        # Determine the size required for the composite image
         margin = 10
-        max_width = bg_width
+        images = []
+        total_width = total_height = 0
+        max_row_height = 0
         current_x, current_y = margin, margin
-        row_height = 0
-        total_height = margin
 
-        # Determine the required height of the composite image
-        for url in image_urls:
-            try:
-                response = requests.get(url, stream=True)
-                response.raise_for_status()
-                img = Image.open(response.raw)
-                img.thumbnail((bg_width // 5, bg_height // 5))  # Resize proportionally
-                
-                if current_x + img.width > max_width - margin:
-                    current_x = margin
-                    current_y += row_height + margin
-                    total_height = current_y
-                    row_height = 0
-                
-                row_height = max(row_height, img.height)
-                current_x += img.width + margin
-            except Exception as e:
-                print(f"Error processing image {url}: {e}")
-                continue
-
-        # Create a new image with the calculated dimensions
-        total_height = max(total_height + row_height + margin, bg_height)
-        composite_image = Image.new('RGB', (bg_width, total_height), (255, 255, 255))
-        composite_image.paste(bg_image, (0, 0))
-
-        # Draw images onto the composite image
-        current_x, current_y = margin, margin
-        row_height = 0
-
+        # Calculate the required dimensions
         for url in image_urls:
             try:
                 response = requests.get(url, stream=True)
                 response.raise_for_status()
                 img = Image.open(response.raw)
                 img.thumbnail((bg_width // 5, bg_height // 5))
-                
-                if current_x + img.width > max_width - margin:
+                images.append(img)
+
+                if current_x + img.width > bg_width - margin:
+                    total_width = max(total_width, current_x)
+                    total_height += max_row_height + margin
+                    max_row_height = 0
                     current_x = margin
-                    current_y += row_height + margin
-                    row_height = 0
-                
-                composite_image.paste(img, (current_x, current_y))
+                    current_y = total_height
+
+                max_row_height = max(max_row_height, img.height)
                 current_x += img.width + margin
-                row_height = max(row_height, img.height)
             except Exception as e:
                 print(f"Error processing image {url}: {e}")
                 continue
+
+        # Add the final row height
+        total_width = max(total_width, current_x)
+        total_height += max_row_height + margin
+
+        # Create the composite image
+        composite_image = Image.new('RGB', (total_width, total_height), (255, 255, 255))
+        composite_image.paste(bg_image, (0, 0))
+
+        current_x, current_y = margin, margin
+        for img in images:
+            if current_x + img.width > total_width - margin:
+                current_x = margin
+                current_y += max_row_height + margin
+            composite_image.paste(img, (current_x, current_y))
+            current_x += img.width + margin
 
         return composite_image
     except Exception as e:
